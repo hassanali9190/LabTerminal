@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-
 import {
   Button,
   View,
@@ -12,6 +11,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
+  Alert,
+  Image,
 } from 'react-native';
 
 import axios from 'axios';
@@ -40,7 +41,7 @@ export default function App() {
 
           width: 200,
         }}>
-        <Drawer.Screen name="Cars"  component={StackNavigator} />
+        <Drawer.Screen name="Cars" component={StackNavigator} />
 
         <Drawer.Screen name="ManageCarBrands" component={brands} />
       </Drawer.Navigator>
@@ -74,35 +75,34 @@ const StackNavigator = ({ navigation }) => {
 };
 
 function users({ navigation }) {
-  const cars = [
-    {
-      id: '-MeA6KUqfuxRJH6E_5t-',
-      epower: '12c',
-      imgi:
-        'https://automobiles.honda.com/-/media/Honda-Automobiles/Vehicles/2021/Pilot/Exterior-right/Overview/MY21-Pilot-Feature-Blade-Primary-Exterior-Overview-2x.jpg',
-      make: 'Toto',
-      model: 'Ghisi',
-      myear: '1997',
-    },
-  ];
+  const [cars, setCars] = useState([]);
+
+  useEffect(() => {
+    getData();
+  }, [navigation]);
+
   function getData() {
     const options = {
       method: 'GET',
 
-      url: 'https://car-showroom-mad-default-rtdb.firebaseio.com//cars.json',
+      url: 'https://car-showroom-mad-default-rtdb.firebaseio.com/cars.json',
     };
 
     axios
       .request(options)
-      .then(function (response) {})
+      .then(function (response) {
+        for (let car in response.data) {
+          setCars((cars) => [...cars, response.data[car]]);
+        }
+      })
       .catch(function (error) {
         console.error(error);
       });
   }
 
-  const showuserdetail = (id) => {
+  const showCarDetails = (item) => {
     navigation.navigate('Car Details', {
-      id: id,
+      item: item,
     });
   };
 
@@ -124,25 +124,28 @@ function users({ navigation }) {
 
       <View style={styles.paddings}>
         <Text style={styles.bigBlue}>List of Cars</Text>
-        <FlatList
-          data={cars}
-          renderItem={({ item }) => (
-            <View style={{ paddingTop: 10 }}>
-              <TouchableOpacity style={styles.appButton}>
-                <Text
-                  onPress={() => {
-                    showuserdetail(item.id);
-                  }}
-                  style={styles.fortext2}>
-                  Epower: {item.epower}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          keyExtractor={(item, index) => item.id}
-        />
+        {cars.length > 0 ? (
+          <FlatList
+            data={cars}
+            renderItem={({ item }) => (
+              <View style={{ paddingTop: 10 }}>
+                <TouchableOpacity style={styles.appButton}>
+                  <Text
+                    onPress={() => {
+                      showCarDetails(item);
+                    }}
+                    style={styles.fortext2}>
+                    {item.make} {item.model}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            keyExtractor={(item, index) => item}
+          />
+        ) : (
+          <Text style={{ margin: 50 }}>Loading cars from firebase. . . </Text>
+        )}
       </View>
-      <ScrollView></ScrollView>
     </View>
   );
 }
@@ -192,6 +195,8 @@ const styles = StyleSheet.create({
     borderColor: 'black',
 
     backgroundColor: 'white',
+
+    alignSelf: 'center',
   },
 
   header: {
@@ -211,116 +216,42 @@ const styles = StyleSheet.create({
   },
 });
 
-function CarDetails({ route, navigation }) {
-  const [make, setMake] = useState('');
-  const [model, setModel] = useState('');
-  const [year, setYear] = useState();
-  const [power, setPower] = useState('');
-  const [color, setColor] = useState('');
-  const [photoURL, setPhotoURL] = useState('');
-
-  useEffect(() => {
-    getData();
-  }, []);
-
-  function getData() {
-    const options = {
-      method: 'GET',
-
-      url:
-        'https://car-showroom-mad-default-rtdb.firebaseio.com//cars/-MeA6KUqfuxRJH6E_5t-',
-    };
-
-    axios
-      .request(options)
-      .then(function (response) {})
-      .catch(function (error) {
-        console.error(error);
-      });
-  }
-
+const CarDetails = (props) => {
+  const { item } = props.route.params;
   return (
-    <View style={styles2.container}>
-      <View style={styles2.paddings}>
-        <Text style={styles2.bigBlue}>Car Details</Text>
-      </View>
-
-      <View style={styles2.paddings}>
-        <Text style={styles2.fortext}>Make: Honda </Text>
-      </View>
-
-      <View style={styles2.paddings2}>
-        <Text style={styles2.fortext}>Model: Epower 12c </Text>
-      </View>
-
-      <View style={styles2.paddings}>
-        <Text style={styles2.fortext}>Manufacturing Year : 2019 </Text>
-      </View>
-
-      <View style={styles2.paddings}>
-        <Text style={styles2.fortext}>Engine Power: 1500cc </Text>
-      </View>
-
-      <View style={styles2.paddings}>
-        <Text style={styles2.fortext}>Color: Red</Text>
-      </View>
+    <View>
+      <Image style={detailScreenStyles.image} source={{ uri: item.photoURL }} />
+      <Text style={detailScreenStyles.title}>Make: {item.make}</Text>
+      <Text style={detailScreenStyles.title}>Model: {item.model}</Text>
+      <Text style={detailScreenStyles.title}>Year: {item.year}</Text>
+      <Text style={detailScreenStyles.price}>Power: {item.power}</Text>
+      <Text style={detailScreenStyles.description}>Color: {item.color}</Text>
     </View>
   );
-}
+};
 
-const styles2 = StyleSheet.create({
-  container: {
-    flex: 1,
-
-    paddingTop: 40,
-
-    alignItems: 'center',
-
-    backgroundColor: 'yellow' ,
+const detailScreenStyles = StyleSheet.create({
+  image: {
+    width: '100%',
+    height: '50%',
   },
-
-  paddings: {
-    paddingTop: 20,
-  },
-
-  paddings2: {
-    paddingTop: 10,
-  },
-
-  bigBlue: {
-    color: 'blue',
-
-    fontWeight: 'bold',
-
+  title: {
     fontSize: 30,
-
-    borderRadius: 10,
-
-    borderWidth: 5,
-
-    borderColor: 'blue',
-
-    backgroundColor: 'white',
-
-    padding: 5,
-  },
-
-  fortext: {
-    color: 'blue',
-
     fontWeight: 'bold',
-
-    fontSize: 15,
-
-    borderRadius: 5,
-
-    borderWidth: 1,
-
-    borderColor: 'blue',
-
-    backgroundColor: 'white',
-
-    padding: 5,
+    color: 'blue',
+    textAlign: 'center',
+    marginVertical: 7,
+  },
+  price: {
+    fontSize: 20,
+    color: '#888',
+    textAlign: 'center',
+    marginVertical: 3,
+  },
+  description: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginHorizontal: 20,
   },
 });
 
@@ -377,54 +308,34 @@ const styles3 = StyleSheet.create({
 });
 
 function AddCar({ navigation }) {
+  const [photoURL, setPhotoURL] = useState();
   const [make, setMake] = useState();
-  const [imgi, setIMG] = useState();
   const [model, setModel] = useState();
-  const [myear, setMyear] = useState();
-  const [epower, setEpower] = useState();
+  const [year, setYear] = useState();
+  const [power, setPower] = useState();
+  const [color, setColor] = useState();
 
-  function onChangeText(value) {
-    console.log(value);
-    setIMG(value);
-  }
-  function onChangeMyear(value) {
-    console.log(value);
-    setMyear(value);
-  }
-  function onChangeMake(value) {
-    console.log(value);
-    setMake(value);
-  }
-  function onChangeModel(value) {
-    console.log(value);
-    setModel(value);
-  }
-  function onChangeEpower(value) {
-    console.log(value);
-    setEpower(value);
-  }
   async function addCar() {
-    const obj = {
+    const carObj = {
       make: make,
-      imgi: imgi,
-      myear: myear,
+      photoURL: photoURL,
+      year: year,
       model: model,
-      epower: epower,
+      power: power,
+      color: color,
     };
-    console.log(obj);
     const requestOptions = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(obj),
+      body: JSON.stringify(carObj),
     };
     fetch(
-      'https://car-showroom-mad-default-rtdb.firebaseio.com//cars.json',
+      'https://car-showroom-mad-default-rtdb.firebaseio.com/cars.json',
       requestOptions
     )
       .then((response) => response.text())
-      .then((data) => {
-        console.log(data);
-      });
+      .then((data) => {});
+    alert('New car added successfully!');
     navigation.replace('Cars');
   }
 
@@ -435,15 +346,16 @@ function AddCar({ navigation }) {
         <View style={{ backgroundColor: '#fff591' }}>
           <TextInput
             style={styles7.input}
-            onChangeText={(value) => onChangeText(value)}
+            onChangeText={(value) => setPhotoURL(value)}
             placeholder="Enter Photo URL"
-            value={imgi}
+            value={photoURL}
+            placeholderTextColor="#040000"
           />
         </View>
         <View style={{ backgroundColor: '#fff591' }}>
           <TextInput
             style={styles7.input}
-            onChangeText={(value) => onChangeMake(value)}
+            onChangeText={(value) => setMake(value)}
             value={make}
             placeholder="Enter Make"
             placeholderTextColor="#040000"
@@ -452,7 +364,7 @@ function AddCar({ navigation }) {
         <View style={{ backgroundColor: '#fff591' }}>
           <TextInput
             style={styles7.input}
-            onChangeText={(value) => onChangeModel(value)}
+            onChangeText={(value) => setModel(value)}
             value={model}
             placeholder="Enter Model"
             placeholderTextColor="#040000"
@@ -461,8 +373,8 @@ function AddCar({ navigation }) {
         <View style={{ backgroundColor: '#fff591' }}>
           <TextInput
             style={styles7.input}
-            onChangeText={(value) => onChangeMyear(value)}
-            value={myear}
+            onChangeText={(value) => setYear(value)}
+            value={year}
             placeholder="Enter Manufacturing Year"
             placeholderTextColor="#040000"
           />
@@ -470,9 +382,18 @@ function AddCar({ navigation }) {
         <View style={{ backgroundColor: '#fff591' }}>
           <TextInput
             style={styles7.input}
-            onChangeText={(value) => onChangeEpower(value)}
-            value={epower}
+            onChangeText={(value) => setPower(value)}
+            value={power}
             placeholder="Enter Engine Power"
+            placeholderTextColor="#040000"
+          />
+        </View>
+        <View style={{ backgroundColor: '#fff591' }}>
+          <TextInput
+            style={styles7.input}
+            onChangeText={(value) => setColor(value)}
+            value={color}
+            placeholder="Enter Car Color"
             placeholderTextColor="#040000"
           />
         </View>
